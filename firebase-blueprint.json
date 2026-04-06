@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the FinSight application.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier of the user." },
+        "email": { "type": "string", "format": "email", "description": "The user's email address." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "photoURL": { "type": "string", "format": "uri", "description": "The user's profile photo URL." },
+        "createdAt": { "type": "timestamp", "description": "When the user profile was created." }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "Asset": {
+      "title": "Asset",
+      "description": "A financial asset tracked by the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The ID of the user who owns this asset." },
+        "symbol": { "type": "string", "description": "The ticker symbol of the asset." },
+        "amount": { "type": "number", "description": "The amount of the asset held." },
+        "type": { "type": "string", "enum": ["crypto", "stock", "forex"], "description": "The type of asset." },
+        "createdAt": { "type": "timestamp", "description": "When the asset was added." }
+      },
+      "required": ["userId", "symbol", "amount", "type", "createdAt"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "A price alert set by the user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The ID of the user who created this alert." },
+        "symbol": { "type": "string", "description": "The ticker symbol for the alert." },
+        "targetPrice": { "type": "number", "description": "The target price to trigger the alert." },
+        "condition": { "type": "string", "enum": ["above", "below"], "description": "The condition to trigger the alert." },
+        "active": { "type": "boolean", "description": "Whether the alert is currently active." },
+        "createdAt": { "type": "timestamp", "description": "When the alert was created." }
+      },
+      "required": ["userId", "symbol", "targetPrice", "condition", "active", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profiles."
+    },
+    "/assets/{assetId}": {
+      "schema": { "$ref": "#/entities/Asset" },
+      "description": "Stores user assets."
+    },
+    "/alerts/{alertId}": {
+      "schema": { "$ref": "#/entities/Alert" },
+      "description": "Stores user price alerts."
+    }
+  }
+}
