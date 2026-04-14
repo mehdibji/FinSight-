@@ -1,3 +1,4 @@
+import { MarketOverview } from "../components/dashboard/MarketOverview";
 import React from "react";
 import { useStore } from "../store/useStore";
 
