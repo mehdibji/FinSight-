@@ -19,7 +19,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
-  apiVersion: '2025-02-24.acacia',
+  apiVersion: '2026-03-25.dahlia',
 });
 
 async function startServer() {
