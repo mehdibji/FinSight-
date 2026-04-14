@@ -12,6 +12,8 @@ import { useStore, Asset, Alert } from './store/useStore';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "./firebase";
 
 // Mock pages for other routes
 const BlogPage = () => <div className="p-8 text-center text-white/40">Education Page (Coming Soon)</div>;
