@@ -9,15 +9,20 @@ import { ChatInterface } from './components/ai/ChatInterface';
 import { MarketOverview } from './components/dashboard/MarketOverview';
 import { PricingPage } from './pages/PricingPage';
 import { useStore, Asset, Alert } from './store/useStore';
-import { auth, db } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+
+// ✅ Firebase propre
+import { auth, db, googleProvider } from './firebase';
+import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 import { collection, query, where, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
-import { signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "./firebase";
 
-// Mock pages for other routes
-const BlogPage = () => <div className="p-8 text-center text-white/40">Education Page (Coming Soon)</div>;
+// Mock page
+const BlogPage = () => (
+  <div className="p-8 text-center text-white/40">
+    Education Page (Coming Soon)
+  </div>
+);
 
+// 🔐 Protection route
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useStore();
   if (!user) {
@@ -30,6 +35,17 @@ export default function App() {
   const { user, setUser, setAssets, setAlerts } = useStore();
   const [isAuthReady, setIsAuthReady] = useState(false);
 
+  // 🔥 LOGIN GOOGLE
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log("User connecté :", result.user);
+    } catch (error) {
+      console.error("Erreur login :", error);
+    }
+  };
+
+  // 🔐 Auth listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -40,10 +56,11 @@ export default function App() {
           photoURL: firebaseUser.photoURL,
         });
 
-        // Ensure user document exists for subscription tracking
+        // créer user Firestore si absent
         try {
           const userRef = doc(db, 'users', firebaseUser.uid);
           const userSnap = await getDoc(userRef);
+
           if (!userSnap.exists()) {
             await setDoc(userRef, {
               email: firebaseUser.email,
@@ -52,18 +69,20 @@ export default function App() {
             });
           }
         } catch (error) {
-          console.error("Error creating user document:", error);
+          console.error("Erreur Firestore:", error);
         }
 
       } else {
         setUser(null);
       }
+
       setIsAuthReady(true);
     });
 
     return () => unsubscribe();
   }, [setUser]);
 
+  // 📊 Data temps réel
   useEffect(() => {
     if (!user || !isAuthReady) {
       setAssets([]);
@@ -71,20 +90,32 @@ export default function App() {
       return;
     }
 
-    const assetsQuery = query(collection(db, 'assets'), where('userId', '==', user.uid));
+    const assetsQuery = query(
+      collection(db, 'assets'),
+      where('userId', '==', user.uid)
+    );
+
     const unsubscribeAssets = onSnapshot(assetsQuery, (snapshot) => {
-      const assetsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Asset));
+      const assetsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Asset));
+
       setAssets(assetsData);
-    }, (error) => {
-      console.error('Error fetching assets:', error);
     });
 
-    const alertsQuery = query(collection(db, 'alerts'), where('userId', '==', user.uid));
+    const alertsQuery = query(
+      collection(db, 'alerts'),
+      where('userId', '==', user.uid)
+    );
+
     const unsubscribeAlerts = onSnapshot(alertsQuery, (snapshot) => {
-      const alertsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Alert));
+      const alertsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Alert));
+
       setAlerts(alertsData);
-    }, (error) => {
-      console.error('Error fetching alerts:', error);
     });
 
     return () => {
@@ -93,6 +124,7 @@ export default function App() {
     };
   }, [user, isAuthReady, setAssets, setAlerts]);
 
+  // ⏳ loader
   if (!isAuthReady) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
@@ -105,21 +137,35 @@ export default function App() {
     <BrowserRouter>
       <div className="font-sans">
         <Routes>
-          <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
-          
-          <Route path="/" element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }>
+
+          {/* Landing */}
+          <Route 
+            path="/" 
+            element={
+              user 
+                ? <Navigate to="/dashboard" replace /> 
+                : <LandingPage onLogin={handleGoogleLogin} />
+            } 
+          />
+
+          {/* Protected */}
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="wallet" element={<WalletTracker />} />
             <Route path="markets" element={<MarketOverview />} />
-            <Route path="copilot" element={<div className="h-[calc(100vh-12rem)]"><ChatInterface /></div>} />
+            <Route path="copilot" element={<ChatInterface />} />
             <Route path="alerts" element={<SmartAlerts />} />
             <Route path="pricing" element={<PricingPage />} />
             <Route path="education" element={<BlogPage />} />
           </Route>
+
         </Routes>
       </div>
     </BrowserRouter>
