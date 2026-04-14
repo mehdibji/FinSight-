@@ -17,7 +17,7 @@ export const DashboardPage = () => {
   return (
     <div style={{ color: "white", padding: 20 }}>
       <h1>Dashboard</h1>
-
+      <MarketOverview />
       <p><strong>Email :</strong> {user.email}</p>
       <p><strong>UID :</strong> {user.uid}</p>
 
