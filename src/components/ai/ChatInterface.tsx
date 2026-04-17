@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, GraduationCap, Sparkles, User, Bot, Loader2, Info } from 'lucide-react';
 import { getGeminiResponse, ChatMessage } from '../../services/gemini';
+import * as TA from '../../services/tradingAssistant';
+import { auth } from '../../firebase';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../../store/useStore';
@@ -28,6 +30,12 @@ export const ChatInterface: React.FC = () => {
     "Compare S&P 500 vs Nasdaq"
   ];
 
+  const quickActions = [
+    { id: 'check_btc', label: 'Check BTC' },
+    { id: 'top_movers', label: 'Top movers' },
+    { id: 'my_portfolio', label: 'My portfolio' },
+  ];
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -43,15 +51,62 @@ export const ChatInterface: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await getGeminiResponse(text, messages, isEducationalMode, assets, alerts);
-      const aiMessage: ChatMessage = { role: 'model', text: response || 'Sorry, I encountered an error.' };
-      setMessages(prev => [...prev, aiMessage]);
+      // Enrich prompt with live market + portfolio context
+      let portfolio = assets;
+      try {
+        const uid = auth.currentUser?.uid;
+        const remote = await TA.getUserPortfolio(uid);
+        if (remote && Array.isArray(remote)) {
+          portfolio = remote as any;
+        }
+      } catch (err) {
+        // ignore
+      }
+
+      // fetch a small market snapshot
+      let marketSnapshot: any = null;
+      try {
+        marketSnapshot = await TA.getMarketOverview();
+      } catch (err) {
+        marketSnapshot = null;
+      }
+
+      const marketContext = marketSnapshot ? `Market snapshot: ${JSON.stringify(marketSnapshot.crypto ?? {})}` : "";
+      const prompt = `${marketContext}\nQuestion: ${text}`;
+
+      const response = await getGeminiResponse(prompt, messages, isEducationalMode, portfolio, alerts);
+      const aiText = response || 'Sorry, I encountered an error.';
+
+      // Stream/typing effect: append empty model message and fill progressively
+      setMessages(prev => [...prev, { role: 'model', text: '' }]);
+      let idx = 0;
+      const chunkSize = 40;
+      while (idx < aiText.length) {
+        const next = aiText.slice(0, idx + chunkSize);
+        setMessages(prev => {
+          const copy = [...prev];
+          // replace last model message
+          const lastIndex = copy.map(m => m.role).lastIndexOf('model');
+          if (lastIndex >= 0) copy[lastIndex] = { role: 'model', text: next };
+          return copy;
+        });
+        idx += chunkSize;
+        // small pause to simulate typing
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, 120));
+      }
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, { role: 'model', text: 'Error connecting to AI service.' }]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleQuick = async (id: string) => {
+    if (id === 'check_btc') return handleSend('What is BTC doing?');
+    if (id === 'top_movers') return handleSend('Top gainers today');
+    if (id === 'my_portfolio') return handleSend('Show my portfolio');
   };
 
   return (
@@ -107,6 +162,18 @@ export const ChatInterface: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            <div className="flex items-center justify-center gap-3 mt-3">
+              {quickActions.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => handleQuick(a.id)}
+                  className="px-3 py-2 rounded-full bg-white/5 border border-white/10 text-xs text-white/70 hover:bg-white/10"
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
         
@@ -154,14 +221,16 @@ export const ChatInterface: React.FC = () => {
       {/* Input */}
       <div className="p-4 bg-white/5 border-t border-white/10 relative">
         {hitPaywall ? (
-          <div className="absolute inset-0 z-20 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-            <Paywall 
-              requiredTier="pro" 
-              title="Daily Limit Reached" 
-              description="You've used your 3 free AI Copilot queries. Upgrade to Pro for unlimited institutional-grade analysis."
-            >
-              <div />
-            </Paywall>
+          <div className="mb-2 p-3 rounded-lg bg-black/60 border border-white/10 text-sm flex items-center justify-between gap-3">
+            <div className="text-white/80">Daily limit reached — upgrade to Pro for unlimited AI Copilot queries.</div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => (window.location.href = '/pricing')}
+                className="px-3 py-1.5 rounded-2xl bg-orange-500 text-black font-semibold"
+              >
+                Upgrade
+              </button>
+            </div>
           </div>
         ) : null}
 

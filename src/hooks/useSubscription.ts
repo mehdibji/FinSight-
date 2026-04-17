@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 
-export type SubscriptionTier = 'free' | 'pro' | 'premium';
+export type SubscriptionTier = 'free' | 'premium';
 
 export const useSubscription = () => {
   const [tier, setTier] = useState<SubscriptionTier>('free');
@@ -19,8 +19,9 @@ export const useSubscription = () => {
         unsubscribeDoc = onSnapshot(userRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
-            // Fallback to 'free' if not set
-            setTier((data.subscriptionTier as SubscriptionTier) || 'free');
+            const subscription = data.subscription as SubscriptionTier | undefined;
+            const subscriptionTier = data.subscriptionTier as SubscriptionTier | undefined;
+            setTier(subscription || subscriptionTier || 'free');
           } else {
             setTier('free');
           }
@@ -50,7 +51,7 @@ export const useSubscription = () => {
   return {
     tier,
     loading,
-    isPro: tier === 'pro' || tier === 'premium',
+    isPro: tier === 'premium',
     isPremium: tier === 'premium',
   };
 };

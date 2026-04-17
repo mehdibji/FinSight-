@@ -7,12 +7,22 @@ import { useNavigate } from "react-router-dom";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 
-export const LandingPage = () => {
+interface LandingPageProps {
+  onLogin?: () => Promise<void>;
+}
+
+export const LandingPage = ({ onLogin }: LandingPageProps) => {
   const navigate = useNavigate();
 
   // 🔐 LOGIN GOOGLE CLEAN
   const handleLogin = async () => {
     try {
+      if (onLogin) {
+        await onLogin();
+        navigate("/dashboard");
+        return;
+      }
+
       const result = await signInWithPopup(auth, googleProvider);
       console.log("User connecté :", result.user);
 

@@ -13,11 +13,30 @@ export const WalletTracker: React.FC = () => {
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'crypto' | 'stock' | 'forex'>('crypto');
   const [isLoading, setIsLoading] = useState(false);
+  const [walletAddress, setWalletAddress] = useState('');
   const { isPro } = useSubscription();
   const navigate = useNavigate();
 
   const FREE_TIER_LIMIT = 3;
   const hitLimit = !isPro && assets.length >= FREE_TIER_LIMIT;
+
+  const connectWallet = async () => {
+    const ethereum = (window as any).ethereum;
+    if (!ethereum) {
+      alert('Installe MetaMask');
+      return;
+    }
+
+    try {
+      const accounts = await ethereum.request({
+        method: 'eth_requestAccounts',
+      });
+      setWalletAddress(accounts[0] || '');
+      console.log('Wallet:', accounts[0]);
+    } catch (error) {
+      console.error('Wallet connection failed', error);
+    }
+  };
 
   const handleAddAsset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,16 +70,29 @@ export const WalletTracker: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold flex items-center gap-2">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
           <Wallet className="w-6 h-6 text-orange-500" />
-          Wallet Tracker
-        </h2>
-        <div className="text-sm text-white/40">
-          Total Assets: <span className="text-white font-bold">{assets.length}</span>
-          {!isPro && <span className="ml-1">/ {FREE_TIER_LIMIT}</span>}
+          <h2 className="text-xl font-bold">Wallet Tracker</h2>
+        </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="text-sm text-white/40">
+            Total Assets: <span className="text-white font-bold">{assets.length}</span>
+            {!isPro && <span className="ml-1">/ {FREE_TIER_LIMIT}</span>}
+          </div>
+          <button
+            onClick={connectWallet}
+            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-full transition-colors"
+          >
+            {walletAddress ? 'Wallet Connected' : 'Connect Wallet'}
+          </button>
         </div>
       </div>
+      {walletAddress && (
+        <div className="text-sm text-white/60 mt-2">
+          Connected: <span className="text-white font-semibold">{walletAddress}</span>
+        </div>
+      )}
 
       {/* Add Asset Form */}
       <div className="relative">

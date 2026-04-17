@@ -8,7 +8,10 @@ import { SmartAlerts } from './components/dashboard/SmartAlerts';
 import { ChatInterface } from './components/ai/ChatInterface';
 import { MarketOverview } from './components/dashboard/MarketOverview';
 import { PricingPage } from './pages/PricingPage';
+import { CheckoutSuccessPage } from './pages/CheckoutSuccessPage';
+import { CheckoutCancelPage } from './pages/CheckoutCancelPage';
 import { useStore, Asset, Alert } from './store/useStore';
+import { useSubscription } from './hooks/useSubscription';
 
 // ✅ Firebase propre
 import { auth, db, googleProvider } from './firebase';
@@ -27,6 +30,25 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useStore();
   if (!user) {
     return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
+const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useStore();
+  const { tier, loading } = useSubscription();
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  if (loading) {
+    return (
+      <div className="min-h-[300px] bg-[#050505] flex items-center justify-center rounded-2xl border border-white/10">
+        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (tier !== 'premium') {
+    return <Navigate to="/pricing" replace />;
   }
   return <>{children}</>;
 };
@@ -65,6 +87,7 @@ export default function App() {
             await setDoc(userRef, {
               email: firebaseUser.email,
               subscriptionTier: 'free',
+              subscription: 'free',
               createdAt: new Date(),
             });
           }
@@ -160,10 +183,12 @@ export default function App() {
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="wallet" element={<WalletTracker />} />
             <Route path="markets" element={<MarketOverview />} />
-            <Route path="copilot" element={<ChatInterface />} />
+            <Route path="copilot" element={<PremiumRoute><ChatInterface /></PremiumRoute>} />
             <Route path="alerts" element={<SmartAlerts />} />
             <Route path="pricing" element={<PricingPage />} />
             <Route path="education" element={<BlogPage />} />
+            <Route path="success" element={<CheckoutSuccessPage />} />
+            <Route path="cancel" element={<CheckoutCancelPage />} />
           </Route>
 
         </Routes>

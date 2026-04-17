@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Zap, ArrowRight, ShieldCheck, CreditCard, HelpCircle } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, type Variants } from 'motion/react';
 import { createCheckoutSession, createPortalSession } from '../services/stripe';
 import { useSubscription } from '../hooks/useSubscription';
 import { useSearchParams } from 'react-router-dom';
 
 export const PricingPage = () => {
-  const { tier, loading, isPro, isPremium } = useSubscription();
+  const { tier } = useSubscription();
   const [isAnnual, setIsAnnual] = useState(true);
   const [searchParams] = useSearchParams();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  // Load monthly/annual price ids from Vite env (fallback to generic keys for backwards compatibility)
+  const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env || {};
+  const premiumMonthly = env.VITE_STRIPE_PREMIUM_PRICE_ID_MONTHLY || env.VITE_STRIPE_PREMIUM_PRICE_ID || '';
+  const premiumAnnual = env.VITE_STRIPE_PREMIUM_PRICE_ID_ANNUAL || env.VITE_STRIPE_PREMIUM_PRICE_ID || '';
+  const proMonthly = env.VITE_STRIPE_PRO_PRICE_ID_MONTHLY || env.VITE_STRIPE_PRO_PRICE_ID || '';
+  const proAnnual = env.VITE_STRIPE_PRO_PRICE_ID_ANNUAL || env.VITE_STRIPE_PRO_PRICE_ID || '';
 
   useEffect(() => {
     if (searchParams.get('session_id')) {
@@ -21,30 +29,34 @@ export const PricingPage = () => {
 
   const handleSubscribe = async (priceId: string) => {
     try {
+      setCheckoutError(null);
       await createCheckoutSession(priceId);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Checkout error:', error);
-      alert('Failed to start checkout. Please try again.');
+      const message = error instanceof Error ? error.message : 'Failed to start checkout. Please try again.';
+      setCheckoutError(message);
     }
   };
 
   const handleManageBilling = async () => {
     try {
+      setCheckoutError(null);
       await createPortalSession();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Portal error:', error);
-      alert('Failed to open billing portal.');
+      const message = error instanceof Error ? error.message : 'Failed to open billing portal.';
+      setCheckoutError(message);
     }
   };
 
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' as const } }
   };
 
   return (
@@ -60,6 +72,11 @@ export const PricingPage = () => {
           <div className="max-w-3xl mx-auto mb-8 p-4 bg-green-500/20 border border-green-500/50 rounded-xl flex items-center gap-3 text-green-400">
             <CheckCircle2 className="w-5 h-5" />
             <p className="font-medium">Subscription successful! Your account is being upgraded.</p>
+          </div>
+        )}
+        {checkoutError && (
+          <div className="max-w-3xl mx-auto mb-8 p-4 bg-red-500/20 border border-red-500/50 rounded-xl text-red-300">
+            {checkoutError}
           </div>
         )}
 
@@ -144,13 +161,13 @@ export const PricingPage = () => {
               <li className="flex items-start gap-3 text-white/90"><CheckCircle2 className="w-5 h-5 text-orange-500 shrink-0" /> Priority support</li>
             </ul>
 
-            {tier === 'pro' ? (
+            {tier === 'premium' ? (
               <button onClick={handleManageBilling} className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/20 transition-all font-bold text-lg border border-white/10">
                 Manage Billing
               </button>
             ) : (
-              <button onClick={() => handleSubscribe(isAnnual ? 'price_pro_annual' : 'price_pro_monthly')} className="w-full py-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 active:scale-95 transition-all font-bold text-white shadow-lg shadow-orange-500/25 text-lg flex items-center justify-center gap-2">
-                Upgrade to Pro <ArrowRight className="w-5 h-5" />
+              <button onClick={() => handleSubscribe(isAnnual ? proAnnual || premiumAnnual : proMonthly || premiumMonthly)} className="w-full py-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 active:scale-95 transition-all font-bold text-white shadow-lg shadow-orange-500/25 text-lg flex items-center justify-center gap-2">
+                Subscribe <ArrowRight className="w-5 h-5" />
               </button>
             )}
           </motion.div>
@@ -179,8 +196,8 @@ export const PricingPage = () => {
                 Manage Billing
               </button>
             ) : (
-              <button onClick={() => handleSubscribe(isAnnual ? 'price_premium_annual' : 'price_premium_monthly')} className="w-full py-4 rounded-xl bg-white text-black hover:bg-gray-200 active:scale-95 transition-all font-bold text-lg">
-                Upgrade to Premium
+              <button onClick={() => handleSubscribe(isAnnual ? premiumAnnual : premiumMonthly)} className="w-full py-4 rounded-xl bg-white text-black hover:bg-gray-200 active:scale-95 transition-all font-bold text-lg">
+                Subscribe
               </button>
             )}
           </motion.div>
