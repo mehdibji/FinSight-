@@ -16,6 +16,9 @@ import { signOut, auth } from '../../firebase';
 import { useSubscription } from '../../hooks/useSubscription';
 import { createPortalSession } from '../../services/stripe';
 import { motion, AnimatePresence } from 'motion/react';
+import { AntiGravityBackground } from '../ui/AntiGravityBackground';
+import { CommandPalette } from '../ui/CommandPalette';
+import { PortalTransition } from './PortalTransition';
 
 export const DashboardLayout = () => {
   const { user } = useStore();
@@ -52,11 +55,11 @@ export const DashboardLayout = () => {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col h-screen bg-[#030305] text-[#E0E2F0] overflow-hidden font-sans relative">
+    <div className="flex flex-col h-screen bg-[#010108] text-[#F1F5F9] overflow-hidden font-sans relative">
       
-      {/* Background Orbs */}
-      <div className="absolute top-[-10%] left-[20%] w-[40vw] h-[40vw] bg-orange-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[10%] w-[30vw] h-[30vw] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* Dynamic Animated Particles Background */}
+      <AntiGravityBackground />
+      <CommandPalette />
 
       {/* Floating Top Bar */}
       <header className="absolute top-4 left-4 right-4 z-50 flex justify-between items-start">
@@ -109,18 +112,13 @@ export const DashboardLayout = () => {
       {/* Main Content Area */}
       <main className="flex-1 relative z-10 w-full h-full overflow-hidden">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
-            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, scale: 1.02, filter: "blur(4px)" }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full h-full pt-20 pb-28 px-4 sm:px-8 overflow-y-auto scrollbar-hide"
-          >
-            <div className="max-w-[1600px] mx-auto h-full">
-              <Outlet />
+          <PortalTransition key={location.pathname}>
+            <div className="w-full h-full pt-20 pb-28 px-4 sm:px-8 overflow-y-auto scrollbar-hide">
+              <div className="max-w-[1600px] mx-auto h-full">
+                <Outlet />
+              </div>
             </div>
-          </motion.div>
+          </PortalTransition>
         </AnimatePresence>
       </main>
 
