@@ -7,6 +7,7 @@ import { WalletTracker } from './components/dashboard/WalletTracker';
 import { SmartAlerts } from './components/dashboard/SmartAlerts';
 import { ChatInterface } from './components/ai/ChatInterface';
 import { MarketOverview } from './components/dashboard/MarketOverview';
+import { AssetPage } from './pages/AssetPage';
 import { PricingPage } from './pages/PricingPage';
 import { CheckoutSuccessPage } from './pages/CheckoutSuccessPage';
 import { CheckoutCancelPage } from './pages/CheckoutCancelPage';
@@ -183,6 +184,7 @@ export default function App() {
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="wallet" element={<WalletTracker />} />
             <Route path="markets" element={<MarketOverview />} />
+            <Route path="asset/:id" element={<AssetPage />} />
             <Route path="copilot" element={<PremiumRoute><ChatInterface /></PremiumRoute>} />
             <Route path="alerts" element={<SmartAlerts />} />
             <Route path="pricing" element={<PricingPage />} />

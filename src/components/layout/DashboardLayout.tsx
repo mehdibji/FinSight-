@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
   PieChart, 
   MessageSquare, 
   Bell, 
-  LogOut,
   Wallet,
   Zap,
-  Menu,
-  X,
+  LogOut,
   CreditCard,
   Crown
 } from 'lucide-react';
@@ -18,18 +15,19 @@ import { useStore } from '../../store/useStore';
 import { signOut, auth } from '../../firebase';
 import { useSubscription } from '../../hooks/useSubscription';
 import { createPortalSession } from '../../services/stripe';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const DashboardLayout = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user, getTotalPortfolioValue } = useStore();
+  const { user } = useStore();
   const navigate = useNavigate();
-  const { tier, isPro } = useSubscription();
+  const location = useLocation();
+  const { isPro } = useSubscription();
 
   const menuItems = [
-    { id: 'dashboard', path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'wallet', path: '/wallet', icon: Wallet, label: 'Portfolio' },
+    { id: 'dashboard', path: '/dashboard', icon: Zap, label: 'Cockpit' },
     { id: 'markets', path: '/markets', icon: PieChart, label: 'Markets' },
-    { id: 'copilot', path: '/copilot', icon: MessageSquare, label: 'AI Copilot' },
+    { id: 'wallet', path: '/wallet', icon: Wallet, label: 'Portfolio' },
+    { id: 'copilot', path: '/copilot', icon: MessageSquare, label: 'AI' },
     { id: 'alerts', path: '/alerts', icon: Bell, label: 'Signals' },
   ];
 
@@ -53,126 +51,108 @@ export const DashboardLayout = () => {
 
   if (!user) return null;
 
-  const totalValue = getTotalPortfolioValue();
-
   return (
-    <div className="flex h-screen bg-[#050505] text-white overflow-hidden font-sans">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+    <div className="flex flex-col h-screen bg-[#030305] text-[#E0E2F0] overflow-hidden font-sans relative">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-[-10%] left-[20%] w-[40vw] h-[40vw] bg-orange-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[10%] right-[10%] w-[30vw] h-[30vw] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Sidebar */}
-      <aside className={cn(
-        "fixed md:static inset-y-0 left-0 z-50 bg-[#0A0A0A] border-r border-white/5 transition-transform duration-300 flex flex-col w-64",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-      )}>
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0 shadow-lg shadow-orange-500/20">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg tracking-tight">FinSight AI</span>
+      {/* Floating Top Bar */}
+      <header className="absolute top-4 left-4 right-4 z-50 flex justify-between items-start">
+        <div className="glass-panel px-4 py-2 rounded-2xl flex items-center gap-3">
+          <div className="w-8 h-8 bg-gradient-to-tr from-orange-600 to-orange-400 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+            <Zap className="w-5 h-5 text-white" />
           </div>
-          <button 
-            className="md:hidden text-white/60 hover:text-white"
-            onClick={() => setIsSidebarOpen(false)}
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <span className="font-bold text-lg tracking-tight text-white hidden sm:block">FinSight</span>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1">
-          {menuItems.map((item) => (
-            <NavLink
-              key={item.id}
-              to={item.path}
-              onClick={() => setIsSidebarOpen(false)}
-              className={({ isActive }) => cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all group text-sm font-medium",
-                isActive ? "bg-orange-500/10 text-orange-500" : "text-white/60 hover:bg-white/5 hover:text-white"
-              )}
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-white/5 space-y-2">
+        <div className="flex gap-3">
           {!isPro ? (
             <button 
-              onClick={() => { setIsSidebarOpen(false); navigate('/pricing'); }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-400 hover:to-orange-500 transition-all shadow-lg shadow-orange-500/20"
+              onClick={() => navigate('/pricing')}
+              className="glass-floating flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold text-orange-400 hover:text-orange-300"
             >
               <Crown className="w-4 h-4" />
-              Upgrade to Pro
+              Upgrade
             </button>
           ) : (
-            <button 
+             <button 
               onClick={handleManageBilling}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:bg-white/5 hover:text-white transition-all"
+              className="glass px-3 py-2 rounded-2xl text-white/70 hover:text-white"
+              title="Manage Billing"
             >
-              <CreditCard className="w-5 h-5" />
-              <span>Manage Billing</span>
+              <CreditCard className="w-4 h-4" />
             </button>
           )}
 
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:bg-red-500/10 hover:text-red-500 transition-all"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Sign Out</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden relative z-0">
-        {/* Top Bar */}
-        <header className="h-16 border-b border-white/5 flex items-center justify-between px-4 md:px-8 bg-[#0A0A0A]/80 backdrop-blur-xl sticky top-0 z-30">
-          <div className="flex items-center gap-4">
+          <div className="glass-panel flex items-center gap-3 p-1 pr-4 rounded-2xl">
+            <img 
+              src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} 
+              alt="Profile" 
+              className="w-8 h-8 rounded-full ml-1"
+              referrerPolicy="no-referrer"
+            />
+            <div className="text-right hidden md:block">
+              <div className="text-xs font-semibold text-white">{user.displayName}</div>
+            </div>
             <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="p-2 hover:bg-white/5 rounded-lg text-white/60 md:hidden"
+              onClick={handleLogout}
+              className="ml-2 p-1.5 rounded-xl hover:bg-white/10 text-white/50 hover:text-red-400 transition-colors"
             >
-              <Menu className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
             </button>
-            <div className="hidden md:block">
-              <h2 className="text-xs font-medium text-white/40 uppercase tracking-wider">Total Portfolio Value</h2>
-              <p className="text-lg font-bold">${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 pl-4 border-l border-white/5">
-              <div className="text-right hidden sm:block">
-                <div className="text-sm font-semibold flex items-center gap-2 justify-end">
-                  {user.displayName}
-                  {isPro && <Crown className="w-3 h-3 text-orange-500" />}
-                </div>
-                <div className="text-xs text-white/40">{user.email}</div>
-              </div>
-              <img 
-                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} 
-                alt="Profile" 
-                className="w-9 h-9 rounded-full border border-white/10"
-                referrerPolicy="no-referrer"
-              />
-            </div>
-          </div>
-        </header>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="max-w-7xl mx-auto space-y-8">
-            <Outlet />
           </div>
         </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 relative z-10 w-full h-full overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 1.02, filter: "blur(4px)" }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full h-full pt-20 pb-28 px-4 sm:px-8 overflow-y-auto scrollbar-hide"
+          >
+            <div className="max-w-[1600px] mx-auto h-full">
+              <Outlet />
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </main>
+
+      {/* Floating Bottom Nav */}
+      <nav className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <div className="glass-panel px-2 py-2 rounded-3xl flex items-center gap-1 sm:gap-2 shadow-2xl shadow-black/50 border border-white/10 backdrop-blur-3xl">
+          {menuItems.map((item) => {
+            const isActive = location.pathname.startsWith(item.path);
+            return (
+              <NavLink
+                key={item.id}
+                to={item.path}
+                className={cn(
+                  "relative px-4 py-3 sm:px-6 rounded-2xl flex flex-col items-center gap-1 sm:flex-row transition-all duration-300",
+                  isActive ? "text-white" : "text-white/40 hover:text-white hover:bg-white/5"
+                )}
+              >
+                {isActive && (
+                  <motion.div 
+                    layoutId="active-nav"
+                    className="absolute inset-0 bg-white/10 rounded-2xl"
+                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  />
+                )}
+                <item.icon className={cn("w-5 h-5 relative z-10", isActive && "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]")} />
+                <span className={cn("text-xs font-semibold relative z-10 hidden sm:block", isActive && "text-white")}>{item.label}</span>
+              </NavLink>
+            )
+          })}
+        </div>
+      </nav>
+
     </div>
   );
 };

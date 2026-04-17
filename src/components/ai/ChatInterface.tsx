@@ -6,7 +6,6 @@ import { auth } from '../../firebase';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../../store/useStore';
-import { Paywall } from '../ui/Paywall';
 import { useSubscription } from '../../hooks/useSubscription';
 
 export const ChatInterface: React.FC = () => {
@@ -17,10 +16,6 @@ export const ChatInterface: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { assets, alerts } = useStore();
   const { tier, isPro } = useSubscription();
-
-  const FREE_TIER_LIMIT = 3;
-  const userMessageCount = messages.filter(m => m.role === 'user').length;
-  const hitPaywall = !isPro && userMessageCount >= FREE_TIER_LIMIT;
 
   const suggestedPrompts = [
     "Analyze my portfolio risk",
@@ -43,7 +38,7 @@ export const ChatInterface: React.FC = () => {
   }, [messages]);
 
   const handleSend = async (text: string = input) => {
-    if (!text.trim() || isLoading || hitPaywall) return;
+    if (!text.trim() || isLoading) return;
 
     const userMessage: ChatMessage = { role: 'user', text };
     setMessages(prev => [...prev, userMessage]);
@@ -220,19 +215,7 @@ export const ChatInterface: React.FC = () => {
 
       {/* Input */}
       <div className="p-4 bg-white/5 border-t border-white/10 relative">
-        {hitPaywall ? (
-          <div className="mb-2 p-3 rounded-lg bg-black/60 border border-white/10 text-sm flex items-center justify-between gap-3">
-            <div className="text-white/80">Daily limit reached — upgrade to Pro for unlimited AI Copilot queries.</div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => (window.location.href = '/pricing')}
-                className="px-3 py-1.5 rounded-2xl bg-orange-500 text-black font-semibold"
-              >
-                Upgrade
-              </button>
-            </div>
-          </div>
-        ) : null}
+        {/* Removed Paywall UI */}
 
         <div className="relative mb-2">
           <input
@@ -241,12 +224,12 @@ export const ChatInterface: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
             placeholder={isEducationalMode ? "Ask for a simple explanation..." : "Analyze market sentiment..."}
-            disabled={hitPaywall}
+            disabled={isLoading}
             className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl py-3 pl-4 pr-12 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-orange-500/50 transition-colors disabled:opacity-50"
           />
           <button
             onClick={() => handleSend(input)}
-            disabled={isLoading || !input.trim() || hitPaywall}
+            disabled={isLoading || !input.trim()}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
@@ -257,11 +240,7 @@ export const ChatInterface: React.FC = () => {
             <Info className="w-3 h-3" />
             <span>AI can make mistakes. Not financial advice.</span>
           </div>
-          {!isPro && (
-            <span className="font-mono text-orange-500/80">
-              {FREE_TIER_LIMIT - userMessageCount} queries left
-            </span>
-          )}
+
         </div>
       </div>
     </div>
