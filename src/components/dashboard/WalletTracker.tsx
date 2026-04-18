@@ -16,18 +16,21 @@ export const WalletTracker: React.FC = () => {
   const [type, setType] = useState<"crypto" | "stock" | "forex">('crypto');
   const [isLoading, setIsLoading] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
+  const [walletError, setWalletError] = useState<string | null>(null);
 
   const connectWallet = async () => {
-    const ethereum = (window as any).ethereum;
+    const ethereum = (window as Window & { ethereum?: { request: (args: { method: string }) => Promise<string[]> } }).ethereum;
     if (!ethereum) {
-      alert('Install MetaMask to connect your wallet.');
+      setWalletError('MetaMask was not detected. Install MetaMask to connect your wallet.');
       return;
     }
     try {
+      setWalletError(null);
       const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
       setWalletAddress(accounts[0] || '');
     } catch (error) {
-       console.error('Wallet connection failed', error);
+      console.error('Wallet connection failed', error);
+      setWalletError('Wallet connection failed. Please retry from MetaMask.');
     }
   };
 
@@ -217,7 +220,7 @@ export const WalletTracker: React.FC = () => {
              <div className="space-y-1.5">
                <label className="text-[10px] uppercase font-bold text-white/40 tracking-wider pl-1">Asset Class</label>
                <select 
-                  value={type} onChange={e => setType(e.target.value as any)}
+                  value={type} onChange={e => setType(e.target.value as "crypto" | "stock" | "forex")}
                   className="w-full bg-[#050505]/50 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold focus:border-orange-500/50 outline-none appearance-none transition-colors"
                >
                   <option value="crypto">Crypto</option>
@@ -233,6 +236,12 @@ export const WalletTracker: React.FC = () => {
            </form>
          </GlassCard>
 
+         {walletError && (
+           <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+             {walletError}
+           </div>
+         )}
+
          {/* Detailed Holdings */}
          <div className="space-y-3">
            <h3 className="text-sm font-bold mb-4 uppercase tracking-widest text-white/50 pl-2">Current Holdings</h3>
@@ -246,11 +255,14 @@ export const WalletTracker: React.FC = () => {
                 <p className="text-sm text-white/40">Add your first position to start tracking your net worth.</p>
              </div>
            ) : (
-             assets.map((asset, i) => {
-               // Pseudo details for futuristic look
-               const mockPrice = 120 + (Math.random() * 50);
-               const mockValue = asset.amount * mockPrice;
-               const mockPnl = (Math.random() * 20) - 5;
+            assets.map((asset, i) => {
+              // Deterministic mock values prevent jittering between renders.
+              const seed = asset.symbol
+                .split("")
+                .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              const mockPrice = 120 + (seed % 50);
+              const mockValue = asset.amount * mockPrice;
+              const mockPnl = ((seed % 200) / 10) - 5;
                const isProfitable = mockPnl >= 0;
 
                return (

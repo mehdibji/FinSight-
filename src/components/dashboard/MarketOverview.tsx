@@ -70,6 +70,9 @@ export const MarketOverview = () => {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all");
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(24);
+  const [isFetching, setIsFetching] = useState(false);
   const navigate = useNavigate();
 
   const fmtUSD = useMemo(
@@ -95,21 +98,26 @@ export const MarketOverview = () => {
   }, [data]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     return items
       .filter((it) => (tab === "all" ? true : it.group === tab))
       .filter((it) => (q ? it.symbol.toLowerCase().includes(q) || it.name.toLowerCase().includes(q) : true));
-  }, [items, query, tab]);
+  }, [debouncedQuery, items, tab]);
+
+  const visibleItems = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
   const fetchMarket = async () => {
     try {
+      setIsFetching(true);
       const res = await fetch("/api/market/overview", { cache: "no-store" });
       if (!res.ok) throw new Error("Market overview fetch failed");
       const json = (await res.json()) as MarketOverviewResponse;
       setData(json);
       setError(null);
     } catch {
-      // Avoid spamming error
+      setError("Unable to refresh market feed. Displaying latest cached view.");
+    } finally {
+      setIsFetching(false);
     }
   };
 
@@ -118,6 +126,18 @@ export const MarketOverview = () => {
     const id = setInterval(fetchMarket, 10000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setDebouncedQuery(query);
+      setVisibleCount(24);
+    }, 220);
+    return () => window.clearTimeout(id);
+  }, [query]);
+
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [tab]);
 
   if (!data && !error) {
     return (
@@ -171,9 +191,10 @@ export const MarketOverview = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {error && <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</div>}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <AnimatePresence>
-          {filtered.map((it) => {
+          {visibleItems.map((it) => {
             const isUp = (it.change ?? 0) >= 0;
             return (
               <motion.div
@@ -183,9 +204,9 @@ export const MarketOverview = () => {
                 exit={{ opacity: 0, scale: 0.9 }}
                 key={it.symbol}
                 onClick={() => navigate(`/asset/${encodeURIComponent(it.symbol)}`)}
-                className="cursor-pointer"
+                className="cursor-pointer transition-transform hover:scale-[1.02]"
               >
-                <GlassCard hoverEffect className="group">
+                <GlassCard hoverEffect className="group border border-transparent transition-all hover:border-orange-500/30 hover:shadow-[0_0_25px_rgba(249,115,22,0.25)]">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <div className={cn(
@@ -224,7 +245,18 @@ export const MarketOverview = () => {
             No assets match your criteria.
           </div>
         )}
+        {filtered.length > visibleCount && (
+          <div className="col-span-full flex justify-center pt-2">
+            <button
+              onClick={() => setVisibleCount((prev) => prev + 24)}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition hover:bg-white/10 hover:text-white"
+            >
+              Load More Assets
+            </button>
+          </div>
+        )}
       </div>
+      {isFetching && data && <div className="text-center text-xs text-white/40">Refreshing market feed...</div>}
     </div>
   );
 };

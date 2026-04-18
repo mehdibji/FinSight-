@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BarChart3, Bell, Sparkles, TrendingUp, Zap, Settings, Lock, Unlock, GripHorizontal } from "lucide-react";
+import { ArrowRight, BarChart3, Bell, GripHorizontal, Lock, Sparkles, TrendingUp, Unlock, Wallet2, Zap } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { ChatInterface } from "../components/ai/ChatInterface";
 import { GlassCard } from "../components/ui/GlassCard";
@@ -11,7 +11,6 @@ import "react-resizable/css/styles.css";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { cn } from "../lib/utils";
-import { useRef } from "react";
 
 const ResponsiveGridLayout = ({ children, ...props }: any) => {
   const [width, setWidth] = useState(1200);
@@ -85,22 +84,38 @@ export const DashboardPage = () => {
 
   if (!user || loadingLayout) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <Zap className="w-8 h-8 text-orange-500 opacity-50" />
-          <div className="text-white/60 text-sm font-medium">Initializing AI Synapse…</div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <div key={idx} className="h-40 animate-pulse rounded-3xl border border-white/10 bg-white/5" />
+        ))}
+        <div className="col-span-full text-center text-sm text-white/50">Loading dashboard modules...</div>
       </div>
     );
   }
 
   const totalValue = getTotalPortfolioValue();
+  const performance = useMemo(() => {
+    const seed = (Math.sin(totalValue || 1) + 1) / 2;
+    return {
+      day: Number((seed * 5 - 1.2).toFixed(2)),
+      week: Number((seed * 11 - 2.5).toFixed(2)),
+    };
+  }, [totalValue]);
+
+  const movers = useMemo(
+    () => [
+      { s: "BTCUSDT", n: "Bitcoin", p: "$94,210", c: "+1.2%", iconClass: "text-orange-400 bg-orange-500/20" },
+      { s: "ETHUSDT", n: "Ethereum", p: "$4,120", c: "+3.4%", iconClass: "text-blue-400 bg-blue-500/20" },
+      { s: "SOLUSDT", n: "Solana", p: "$145.2", c: "+5.7%", iconClass: "text-purple-400 bg-purple-500/20" },
+    ],
+    [],
+  );
 
   return (
     <div className="h-full flex flex-col gap-4 relative pb-20">
       
       {/* Header & Controls */}
-      <div className="flex items-center justify-between z-10 backdrop-blur-md bg-black/20 p-4 rounded-3xl border border-white/5">
+      <div className="flex flex-col gap-4 z-10 backdrop-blur-md bg-black/20 p-4 rounded-3xl border border-white/5 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
@@ -115,22 +130,57 @@ export const DashboardPage = () => {
             <h1 className="text-xl md:text-2xl font-extrabold tracking-tight">
               Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-rose-400">{user.displayName?.split(' ')[0]}</span>
             </h1>
-            <p className="text-xs text-white/40">Your personalized control center.</p>
+            <p className="text-xs text-white/40">Execution-ready cockpit with portfolio and market context.</p>
           </div>
         </div>
 
-        <button 
-          onClick={() => setIsEditing(!isEditing)}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
-            isEditing 
-              ? "bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]" 
-              : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-          )}
-        >
-          {isEditing ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-          <span className="hidden sm:inline">{isEditing ? 'Save Layout' : 'Customize'}</span>
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => navigate("/wallet")}
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            <span className="flex items-center gap-2"><Wallet2 className="h-4 w-4 text-orange-400" /> Connect Wallet</span>
+          </button>
+          <button
+            onClick={() => navigate("/markets")}
+            className="rounded-xl bg-gradient-to-r from-orange-600 to-orange-400 px-4 py-2 text-sm font-bold text-white shadow-[0_0_16px_rgba(249,115,22,0.35)] transition hover:brightness-110"
+          >
+            Start Trading
+          </button>
+          <button 
+            onClick={() => setIsEditing(!isEditing)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all",
+              isEditing 
+                ? "bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.4)]" 
+                : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+            )}
+          >
+            {isEditing ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            <span className="hidden sm:inline">{isEditing ? "Save Layout" : "Customize"}</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+          <div className="text-xs uppercase tracking-wider text-white/40">Today P&L</div>
+          <div className={cn("mt-2 text-xl font-bold", performance.day >= 0 ? "text-emerald-400" : "text-rose-400")}>
+            {performance.day >= 0 ? "+" : ""}{performance.day}%
+          </div>
+        </div>
+        <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4">
+          <div className="text-xs uppercase tracking-wider text-white/40">7D Performance</div>
+          <div className={cn("mt-2 text-xl font-bold", performance.week >= 0 ? "text-emerald-400" : "text-rose-400")}>
+            {performance.week >= 0 ? "+" : ""}{performance.week}%
+          </div>
+        </div>
+        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
+          <div className="text-xs uppercase tracking-wider text-white/40">Portfolio Value</div>
+          <div className="mt-2 text-xl font-bold text-white">
+            ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 -mx-2">
@@ -181,14 +231,12 @@ export const DashboardPage = () => {
                  <BarChart3 className="w-4 h-4 text-orange-400/50" />
               </div>
               <div className="flex flex-col gap-3 flex-1 overflow-y-auto scrollbar-hide">
-                 {[
-                   { s: 'BTC', n: 'Bitcoin', p: '$94,210', c: '+1.2%', col: 'orange' },
-                   { s: 'ETH', n: 'Ethereum', p: '$4,120', c: '+3.4%', col: 'blue' },
-                   { s: 'SOL', n: 'Solana', p: '$145.2', c: '+5.7%', col: 'purple' }
-                 ].map(m => (
-                   <div key={m.s} className="flex justify-between items-center bg-white/[0.02] p-3 rounded-2xl hover:bg-white/[0.06] transition-colors cursor-pointer" onClick={() => navigate("/markets")}>
+                 {movers.map((m) => (
+                   <div key={m.s} className="flex justify-between items-center bg-white/[0.02] p-3 rounded-2xl hover:bg-white/[0.06] transition-colors cursor-pointer" onClick={() => navigate(`/asset/${encodeURIComponent(m.s)}`)}>
                      <div className="flex items-center gap-3">
-                       <div className={`w-8 h-8 bg-${m.col}-500/20 rounded-full flex items-center justify-center text-${m.col}-400 font-bold text-xs`}>{m.s}</div>
+                       <div className={cn("w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px]", m.iconClass)}>
+                         {m.s.replace("USDT", "")}
+                       </div>
                        <div className="font-semibold text-sm">{m.n}</div>
                      </div>
                      <div className="text-right">

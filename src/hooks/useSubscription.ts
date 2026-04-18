@@ -9,7 +9,7 @@ export const useSubscription = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let unsubscribeDoc: () => void;
+    let unsubscribeDoc: (() => void) | null = null;
 
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (user) {
@@ -32,9 +32,8 @@ export const useSubscription = () => {
           setLoading(false);
         });
       } else {
-        if (unsubscribeDoc) {
-          unsubscribeDoc();
-        }
+        unsubscribeDoc?.();
+        unsubscribeDoc = null;
         setTier('free');
         setLoading(false);
       }
@@ -42,9 +41,7 @@ export const useSubscription = () => {
 
     return () => {
       unsubscribeAuth();
-      if (unsubscribeDoc) {
-        unsubscribeDoc();
-      }
+      unsubscribeDoc?.();
     };
   }, []);
 

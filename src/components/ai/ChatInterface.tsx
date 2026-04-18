@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useMemo, useState, useEffect, useRef } from 'react';
 import { Send, GraduationCap, Sparkles, User, Bot, Loader2, Info, Copy, RefreshCw, ThumbsUp, ThumbsDown, LineChart, Globe, Target, Activity, Clock, FileText } from 'lucide-react';
 import { getGeminiResponse, ChatMessage } from '../../services/gemini';
 import * as TA from '../../services/tradingAssistant';
@@ -6,23 +6,9 @@ import { auth } from '../../firebase';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../../store/useStore';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import rehypeHighlight from 'rehype-highlight';
-import 'highlight.js/styles/atom-one-dark.css';
-
-const TypewriterText = ({ text }: { text: string }) => {
-  return (
-    <div className="prose prose-invert prose-sm max-w-none text-white/80">
-      <ReactMarkdown 
-        remarkPlugins={[remarkGfm]} 
-        rehypePlugins={[rehypeHighlight]}
-      >
-        {text}
-      </ReactMarkdown>
-    </div>
-  );
-};
+const MarkdownRenderer = lazy(() =>
+  import("./MarkdownRenderer").then((m) => ({ default: m.MarkdownRenderer })),
+);
 
 export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -41,9 +27,9 @@ export const ChatInterface: React.FC = () => {
   ];
 
   const quickActions = [
-    { id: 'check_btc', label: 'Check BTC' },
-    { id: 'top_movers', label: 'Top movers' },
-    { id: 'my_portfolio', label: 'My portfolio' },
+    { id: 'analyze_portfolio', label: 'Analyze portfolio' },
+    { id: 'market_sentiment', label: 'Market sentiment' },
+    { id: 'trading_ideas', label: 'Trading ideas' },
   ];
 
   const advancedTools = [
@@ -60,6 +46,29 @@ export const ChatInterface: React.FC = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const proactiveSuggestions = useMemo(() => {
+    const hasHighRiskAlert = alerts.some((a) => a.active);
+    return [
+      "BTC is trending up with positive momentum across major pairs.",
+      hasHighRiskAlert
+        ? "Your portfolio risk is high due to active alerts. Consider reducing concentration."
+        : "Your portfolio risk is moderate. You can rebalance to reduce volatility.",
+    ];
+  }, [alerts]);
+
+  useEffect(() => {
+    if (messages.length > 0) return;
+    const timer = window.setTimeout(() => {
+      setMessages([
+        {
+          role: "model",
+          text: `Proactive update:\n- ${proactiveSuggestions[0]}\n- ${proactiveSuggestions[1]}`,
+        },
+      ]);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [messages.length, proactiveSuggestions]);
 
   const handleSend = async (text: string = input) => {
     if (!text.trim() || isLoading) return;
@@ -130,7 +139,7 @@ export const ChatInterface: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-[#050512]/60 backdrop-blur-[40px] border border-indigo-500/15 rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(99,102,241,0.05)]">
       {/* Header */}
-      <div className="p-4 border-b border-indigo-500/10 flex items-center justify-between bg-white/5">
+      <div className="p-5 border-b border-indigo-500/10 flex items-center justify-between bg-white/5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-orange-500 flex items-center justify-center p-[1px]">
              <div className="w-full h-full bg-[#050512] rounded-full flex items-center justify-center">
@@ -158,7 +167,7 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Advanced Tools bar */}
-      <div className="flex overflow-x-auto gap-2 px-4 py-2 border-b border-indigo-500/10 bg-black/20 scrollbar-hide">
+      <div className="flex overflow-x-auto gap-2 px-4 py-3 border-b border-indigo-500/10 bg-black/20 scrollbar-hide">
         {advancedTools.map(tool => (
           <button
             key={tool.id}
@@ -172,7 +181,7 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide relative z-10">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-hide relative z-10">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-6">
             <motion.div 
@@ -183,10 +192,18 @@ export const ChatInterface: React.FC = () => {
               <Bot className="w-8 h-8 text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
             </motion.div>
             <div>
-              <h4 className="text-white font-bold text-lg mb-2">Initialize Sub-Routine</h4>
+              <h4 className="text-white font-bold text-lg mb-2">Trading Copilot Online</h4>
               <p className="text-sm text-white/40 max-w-sm">
-                Awaiting your command. I can analyze deep market trends, backtest strategies, or manage your portfolio risk.
+                I can proactively flag momentum shifts, portfolio risk, and tactical opportunities.
               </p>
+            </div>
+            <div className="w-full max-w-lg rounded-2xl border border-orange-500/20 bg-orange-500/5 p-3 text-left">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-orange-300">Proactive Suggestions</p>
+              <ul className="space-y-1 text-xs text-white/70">
+                {proactiveSuggestions.map((suggestion, idx) => (
+                  <li key={idx}>- {suggestion}</li>
+                ))}
+              </ul>
             </div>
             
             <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-md">
@@ -243,7 +260,9 @@ export const ChatInterface: React.FC = () => {
                     : "bg-[#0A0A1A]/80 backdrop-blur-md text-white/90 border border-indigo-500/20 rounded-tl-none shadow-[0_4px_30px_rgba(0,0,0,0.5)]"
                 )}>
                   {msg.role === 'model' ? (
-                    <TypewriterText text={msg.text} />
+                    <Suspense fallback={<div className="text-white/70">{msg.text}</div>}>
+                      <MarkdownRenderer text={msg.text} />
+                    </Suspense>
                   ) : (
                     msg.text
                   )}
@@ -293,7 +312,7 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-black/40 border-t border-indigo-500/20 backdrop-blur-3xl z-20">
+      <div className="p-5 bg-black/40 border-t border-indigo-500/20 backdrop-blur-3xl z-20">
         <div className="relative mb-2">
           <input
             type="text"

@@ -20,6 +20,7 @@ const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY
   .replace(/\\n/g, "\n");
 const hasFirebaseServiceAccount =
   Boolean(firebaseProjectId) && Boolean(firebaseClientEmail) && Boolean(firebasePrivateKey);
+let firebaseAdminReady = false;
 
 if (!admin.apps.length) {
   try {
@@ -31,18 +32,19 @@ if (!admin.apps.length) {
           privateKey: firebasePrivateKey,
         }),
       });
+      firebaseAdminReady = true;
     } else {
-      admin.initializeApp();
-      console.warn(
-        "Firebase Admin service account env vars are missing. Falling back to default credentials.",
-      );
+      console.warn("Firebase Admin service account env vars are missing.");
     }
   } catch (error) {
     console.error("Firebase admin initialization error", error);
   }
 }
 
-const db = admin.firestore();
+if (!firebaseAdminReady && admin.apps.length > 0) {
+  firebaseAdminReady = true;
+}
+const db = firebaseAdminReady ? admin.firestore() : null;
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecretKey
@@ -80,6 +82,22 @@ function sendApiError(
   return res.status(status).json({ error: code, message });
 }
 
+function sendStructuredError(
+  res: express.Response,
+  status: number,
+  code: string,
+  message: string,
+  details?: Record<string, unknown>,
+) {
+  return res.status(status).json({
+    error: {
+      code,
+      message,
+      ...(details ? { details } : {}),
+    },
+  });
+}
+
 async function verifyFirebaseAuth(
   req: AuthedRequest,
   res: express.Response,
@@ -95,7 +113,7 @@ async function verifyFirebaseAuth(
     return sendApiError(res, 401, "UNAUTHORIZED", "Authentication token is required.");
   }
 
-  if (!admin.apps.length) {
+  if (!firebaseAdminReady || !admin.apps.length) {
     return sendApiError(
       res,
       500,
@@ -192,7 +210,7 @@ async function startServer() {
 
   // Stripe webhook needs raw body
   app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-    if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+    if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET || !db) {
       return sendApiError(
         res,
         500,
@@ -307,7 +325,7 @@ async function startServer() {
 
       if (!upstreamRes.ok) {
         res.setHeader("Cache-Control", "no-store");
-        return res.status(502).json({ error: "BINANCE_UPSTREAM_ERROR" });
+        return sendStructuredError(res, 502, "BINANCE_UPSTREAM_ERROR", "Binance market endpoint failed.");
       }
 
       const payload = (await upstreamRes.json()) as Array<{
@@ -322,7 +340,7 @@ async function startServer() {
 
       if (!btc || !eth) {
         res.setHeader("Cache-Control", "no-store");
-        return res.status(502).json({ error: "BINANCE_BAD_RESPONSE" });
+        return sendStructuredError(res, 502, "BINANCE_BAD_RESPONSE", "Binance response is missing required symbols.");
       }
 
       const clean = {
@@ -340,7 +358,7 @@ async function startServer() {
       return res.json(clean);
     } catch {
       res.setHeader("Cache-Control", "no-store");
-      return res.status(500).json({ error: "MARKET_DATA_ERROR" });
+      return sendStructuredError(res, 500, "MARKET_DATA_ERROR", "Unable to fetch market data.");
     }
   });
 
@@ -356,7 +374,7 @@ async function startServer() {
 
       if (!allowedSymbols.has(symbol) || !allowedIntervals.has(interval)) {
         res.setHeader("Cache-Control", "no-store");
-        return res.status(400).json({ error: "BAD_REQUEST" });
+        return sendStructuredError(res, 400, "BAD_REQUEST", "Unsupported symbol or interval.");
       }
 
       const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(
@@ -366,7 +384,7 @@ async function startServer() {
       const upstreamRes = await fetch(url);
       if (!upstreamRes.ok) {
         res.setHeader("Cache-Control", "no-store");
-        return res.status(502).json({ error: "BINANCE_UPSTREAM_ERROR" });
+        return sendStructuredError(res, 502, "BINANCE_UPSTREAM_ERROR", "Binance klines endpoint failed.");
       }
 
       const raw = (await upstreamRes.json()) as Array<[
@@ -397,7 +415,7 @@ async function startServer() {
       return res.json({ symbol, interval, candles });
     } catch {
       res.setHeader("Cache-Control", "no-store");
-      return res.status(500).json({ error: "KLINES_ERROR" });
+      return sendStructuredError(res, 500, "KLINES_ERROR", "Unable to load candle data.");
     }
   });
 
@@ -410,14 +428,14 @@ async function startServer() {
       const allowedSymbols = new Set(["BTCUSDT", "ETHUSDT"]);
       if (!allowedSymbols.has(symbol)) {
         res.setHeader("Cache-Control", "no-store");
-        return res.status(400).json({ error: "BAD_REQUEST" });
+        return sendStructuredError(res, 400, "BAD_REQUEST", "Unsupported depth symbol.");
       }
 
       const url = `https://api.binance.com/api/v3/depth?symbol=${encodeURIComponent(symbol)}&limit=${limit}`;
       const upstreamRes = await fetch(url);
       if (!upstreamRes.ok) {
         res.setHeader("Cache-Control", "no-store");
-        return res.status(502).json({ error: "BINANCE_UPSTREAM_ERROR" });
+        return sendStructuredError(res, 502, "BINANCE_UPSTREAM_ERROR", "Binance depth endpoint failed.");
       }
 
       const raw = (await upstreamRes.json()) as {
@@ -439,7 +457,7 @@ async function startServer() {
       return res.json({ symbol, bids, asks });
     } catch {
       res.setHeader("Cache-Control", "no-store");
-      return res.status(500).json({ error: "DEPTH_ERROR" });
+      return sendStructuredError(res, 500, "DEPTH_ERROR", "Unable to load order book data.");
     }
   });
 
@@ -649,7 +667,7 @@ async function startServer() {
     try {
       const { customerId } = req.body;
 
-      if (!stripe) {
+      if (!stripe || !db) {
         return sendApiError(
           res,
           500,

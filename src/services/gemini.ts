@@ -1,7 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { Asset, Alert } from '../store/useStore';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env || {};
+const geminiApiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || "";
+const ai = geminiApiKey ? new GoogleGenAI({ apiKey: geminiApiKey }) : null;
 
 export interface ChatMessage {
   role: 'user' | 'model';
@@ -15,6 +17,10 @@ export const getGeminiResponse = async (
   assets: Asset[] = [],
   alerts: Alert[] = []
 ) => {
+  if (!ai) {
+    return "AI service is not configured yet. Add VITE_GEMINI_API_KEY to your environment.";
+  }
+
   const portfolioContext = `
     User's Current Portfolio:
     Assets: ${JSON.stringify(assets.map(a => ({ symbol: a.symbol, amount: a.amount, type: a.type })))}
@@ -39,7 +45,7 @@ export const getGeminiResponse = async (
        ${portfolioContext}`;
 
   const chat = ai.chats.create({
-    model: "gemini-3.1-pro-preview",
+    model: "gemini-flash-latest",
     config: {
       systemInstruction,
       tools: [{ googleSearch: {} }],

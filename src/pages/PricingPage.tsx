@@ -7,7 +7,6 @@ import { useSearchParams } from 'react-router-dom';
 
 export const PricingPage = () => {
   const { tier } = useSubscription();
-  const [isAnnual, setIsAnnual] = useState(true);
   const [searchParams] = useSearchParams();
   const [showSuccess, setShowSuccess] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -95,19 +94,6 @@ export const PricingPage = () => {
             Start for free. Upgrade when you need institutional-grade market intelligence and unlimited AI analysis.
           </motion.p>
 
-          {/* Billing Toggle */}
-          <motion.div variants={itemVariants} className="flex items-center justify-center gap-4">
-            <span className={`text-sm font-medium ${!isAnnual ? 'text-white' : 'text-white/40'}`}>Monthly</span>
-            <button 
-              onClick={() => setIsAnnual(!isAnnual)}
-              className="relative w-16 h-8 rounded-full bg-white/10 border border-white/20 p-1 transition-colors hover:bg-white/20"
-            >
-              <div className={`w-6 h-6 rounded-full bg-orange-500 shadow-lg transition-transform duration-300 ${isAnnual ? 'translate-x-8' : 'translate-x-0'}`} />
-            </button>
-            <span className={`text-sm font-medium flex items-center gap-2 ${isAnnual ? 'text-white' : 'text-white/40'}`}>
-              Annually <span className="text-[10px] bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full font-bold">SAVE 20%</span>
-            </span>
-          </motion.div>
         </motion.div>
 
         {/* Pricing Cards */}
@@ -117,14 +103,14 @@ export const PricingPage = () => {
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
             className="p-8 rounded-3xl bg-[#0A0A0A] border border-white/10 flex flex-col hover:border-white/20 transition-colors"
           >
-            <h3 className="text-2xl font-bold mb-2">Basic</h3>
+            <h3 className="text-2xl font-bold mb-2">Free</h3>
             <p className="text-white/50 text-sm mb-6 h-10">Perfect for retail investors getting started with tracking.</p>
             <div className="text-5xl font-extrabold mb-8">$0<span className="text-lg text-white/40 font-medium tracking-normal">/mo</span></div>
             
             <ul className="space-y-4 mb-10 flex-1">
               <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/20 shrink-0" /> Up to 3 exchange connections</li>
               <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/20 shrink-0" /> End-of-day portfolio sync</li>
-              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/20 shrink-0" /> 10 AI Copilot queries / month</li>
+              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/20 shrink-0" /> 25 AI Copilot queries / month</li>
               <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/20 shrink-0" /> Standard market data</li>
             </ul>
 
@@ -139,7 +125,7 @@ export const PricingPage = () => {
             )}
           </motion.div>
 
-          {/* Pro Tier */}
+          {/* Pro Monthly Tier */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
             className="p-8 rounded-3xl bg-gradient-to-b from-orange-500/10 to-[#0A0A0A] border border-orange-500/30 flex flex-col relative hover:shadow-2xl hover:shadow-orange-500/20 transition-all duration-300 transform md:-translate-y-4"
@@ -147,10 +133,10 @@ export const PricingPage = () => {
             <div className="absolute top-0 right-8 -translate-y-1/2 bg-gradient-to-r from-orange-400 to-orange-600 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg shadow-orange-500/30">
               MOST POPULAR
             </div>
-            <h3 className="text-2xl font-bold mb-2 text-orange-500">Pro</h3>
-            <p className="text-white/50 text-sm mb-6 h-10">For serious traders who need real-time data and unlimited AI.</p>
+            <h3 className="text-2xl font-bold mb-2 text-orange-500">Pro Monthly</h3>
+            <p className="text-white/50 text-sm mb-6 h-10">For active traders needing real-time signals and unlimited AI assistance.</p>
             <div className="text-5xl font-extrabold mb-8">
-              ${isAnnual ? '29' : '39'}<span className="text-lg text-white/40 font-medium tracking-normal">/mo</span>
+              $39<span className="text-lg text-white/40 font-medium tracking-normal">/mo</span>
             </div>
             
             <ul className="space-y-4 mb-10 flex-1">
@@ -166,28 +152,28 @@ export const PricingPage = () => {
                 Manage Billing
               </button>
             ) : (
-              <button onClick={() => handleSubscribe(isAnnual ? proAnnual || premiumAnnual : proMonthly || premiumMonthly)} className="w-full py-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 active:scale-95 transition-all font-bold text-white shadow-lg shadow-orange-500/25 text-lg flex items-center justify-center gap-2">
+              <button onClick={() => handleSubscribe(proMonthly || premiumMonthly)} className="w-full py-4 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 active:scale-95 transition-all font-bold text-white shadow-lg shadow-orange-500/25 text-lg flex items-center justify-center gap-2">
                 Subscribe <ArrowRight className="w-5 h-5" />
               </button>
             )}
           </motion.div>
 
-          {/* Premium Tier */}
+          {/* Pro Annual Tier */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
             className="p-8 rounded-3xl bg-[#0A0A0A] border border-white/10 flex flex-col hover:border-white/20 transition-colors"
           >
-            <h3 className="text-2xl font-bold mb-2">Premium</h3>
-            <p className="text-white/50 text-sm mb-6 h-10">Institutional tools for fund managers and high-net-worth individuals.</p>
+            <h3 className="text-2xl font-bold mb-2">Pro Annual</h3>
+            <p className="text-white/50 text-sm mb-6 h-10">Same pro feature set with annual billing discount and better effective monthly rate.</p>
             <div className="text-5xl font-extrabold mb-8">
-              ${isAnnual ? '99' : '129'}<span className="text-lg text-white/40 font-medium tracking-normal">/mo</span>
+              $29<span className="text-lg text-white/40 font-medium tracking-normal">/mo</span>
             </div>
             
             <ul className="space-y-4 mb-10 flex-1">
-              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/40 shrink-0" /> Everything in Pro</li>
-              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/40 shrink-0" /> API Access (Read/Write)</li>
-              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/40 shrink-0" /> Custom AI model fine-tuning</li>
-              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/40 shrink-0" /> Dedicated account manager</li>
+              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/40 shrink-0" /> Everything in Pro Monthly</li>
+              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/40 shrink-0" /> Priority webhook throughput</li>
+              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/40 shrink-0" /> Annual billing discount (~25%)</li>
+              <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/40 shrink-0" /> Early access trading modules</li>
               <li className="flex items-start gap-3 text-white/80"><CheckCircle2 className="w-5 h-5 text-white/40 shrink-0" /> Export to CSV/PDF</li>
             </ul>
 
@@ -196,7 +182,7 @@ export const PricingPage = () => {
                 Manage Billing
               </button>
             ) : (
-              <button onClick={() => handleSubscribe(isAnnual ? premiumAnnual : premiumMonthly)} className="w-full py-4 rounded-xl bg-white text-black hover:bg-gray-200 active:scale-95 transition-all font-bold text-lg">
+              <button onClick={() => handleSubscribe(proAnnual || premiumAnnual)} className="w-full py-4 rounded-xl bg-white text-black hover:bg-gray-200 active:scale-95 transition-all font-bold text-lg">
                 Subscribe
               </button>
             )}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Zap, ExternalLink, TrendingUp, TrendingDown, Layers, Activity, Maximize, Target } from 'lucide-react';
+import { ArrowLeft, Layers, Activity, Target, BarChart3 } from 'lucide-react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { cn } from '../lib/utils';
 import {
@@ -35,6 +35,7 @@ export const AssetPage = () => {
   const [intervalOption, setIntervalOption] = useState("15m");
   const [activeTab, setActiveTab] = useState<'chart' | 'depth' | 'info'>('chart');
   const [showIndicators, setShowIndicators] = useState(false);
+  const [isChartLoading, setIsChartLoading] = useState(true);
 
   const [orderSide, setOrderSide] = useState<"buy" | "sell">("buy");
   const [orderPrice, setOrderPrice] = useState("");
@@ -67,7 +68,10 @@ export const AssetPage = () => {
              });
           }
         }
-      } catch (err) {}
+      } catch (err) {
+      } finally {
+        setIsChartLoading(false);
+      }
     };
 
     const fetchOrderBook = async () => {
@@ -193,7 +197,12 @@ export const AssetPage = () => {
 
            {/* Content Area */}
            <div className="flex-1 relative">
-             {activeTab === 'chart' && <div ref={chartRef} className="absolute inset-0" />}
+             {activeTab === 'chart' && (
+              <>
+                {isChartLoading && <div className="absolute inset-0 animate-pulse bg-white/[0.03]" />}
+                <div ref={chartRef} className="absolute inset-0" />
+              </>
+             )}
              {activeTab === 'depth' && (
                 <div className="absolute inset-0 flex items-center justify-center text-white/40 font-bold">
                    <Target className="w-8 h-8 opacity-20 mb-2 mr-2" /> Depth visualization loading...
@@ -297,6 +306,25 @@ export const AssetPage = () => {
                  <span className="relative z-10">{orderSide === 'buy' ? 'Execute Buy' : 'Execute Sell'}</span>
                </button>
              </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="p-4 border-indigo-500/10 bg-black/30">
+          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white/90">
+            <BarChart3 className="h-4 w-4 text-orange-400" />
+            Market Stats
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="text-white/40">24h Volume</div>
+              <div className="mt-1 font-bold text-white">{marketInfo.vol.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+              <div className="text-white/40">Trend</div>
+              <div className={cn("mt-1 font-bold", marketInfo.change >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                {marketInfo.change >= 0 ? "Bullish" : "Bearish"}
+              </div>
+            </div>
           </div>
         </GlassCard>
 

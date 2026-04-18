@@ -1,23 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout';
-import { LandingPage } from './pages/LandingPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { WalletTracker } from './components/dashboard/WalletTracker';
-import { SmartAlerts } from './components/dashboard/SmartAlerts';
-import { ChatInterface } from './components/ai/ChatInterface';
-import { MarketOverview } from './components/dashboard/MarketOverview';
-import { AssetPage } from './pages/AssetPage';
-import { PricingPage } from './pages/PricingPage';
-import { CheckoutSuccessPage } from './pages/CheckoutSuccessPage';
-import { CheckoutCancelPage } from './pages/CheckoutCancelPage';
 import { useStore, Asset, Alert } from './store/useStore';
-import { useSubscription } from './hooks/useSubscription';
 
 // ✅ Firebase propre
 import { auth, db, googleProvider } from './firebase';
 import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
 import { collection, query, where, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
+
+const LandingPage = lazy(() => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const WalletTracker = lazy(() => import('./components/dashboard/WalletTracker').then((m) => ({ default: m.WalletTracker })));
+const SmartAlerts = lazy(() => import('./components/dashboard/SmartAlerts').then((m) => ({ default: m.SmartAlerts })));
+const ChatInterface = lazy(() => import('./components/ai/ChatInterface').then((m) => ({ default: m.ChatInterface })));
+const MarketOverview = lazy(() => import('./components/dashboard/MarketOverview').then((m) => ({ default: m.MarketOverview })));
+const AssetPage = lazy(() => import('./pages/AssetPage').then((m) => ({ default: m.AssetPage })));
+const PricingPage = lazy(() => import('./pages/PricingPage').then((m) => ({ default: m.PricingPage })));
+const CheckoutSuccessPage = lazy(() => import('./pages/CheckoutSuccessPage').then((m) => ({ default: m.CheckoutSuccessPage })));
+const CheckoutCancelPage = lazy(() => import('./pages/CheckoutCancelPage').then((m) => ({ default: m.CheckoutCancelPage })));
 
 // Mock page
 const BlogPage = () => (
@@ -35,24 +35,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useStore();
-  const { tier, loading } = useSubscription();
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-  if (loading) {
-    return (
-      <div className="min-h-[300px] bg-[#050505] flex items-center justify-center rounded-2xl border border-white/10">
-        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-  if (tier !== 'premium') {
-    return <Navigate to="/pricing" replace />;
-  }
-  return <>{children}</>;
-};
+const RouteSkeleton = () => (
+  <div className="min-h-[60vh] animate-pulse rounded-3xl border border-white/10 bg-white/5 p-6">
+    <div className="mb-4 h-7 w-52 rounded bg-white/10" />
+    <div className="mb-3 h-4 w-80 max-w-full rounded bg-white/10" />
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="h-36 rounded-2xl bg-white/10" />
+      <div className="h-36 rounded-2xl bg-white/10" />
+    </div>
+  </div>
+);
 
 export default function App() {
   const { user, setUser, setAssets, setAlerts } = useStore();
@@ -160,40 +152,43 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="font-sans">
-        <Routes>
+        <Suspense fallback={<RouteSkeleton />}>
+          <Routes>
 
-          {/* Landing */}
-          <Route 
-            path="/" 
-            element={
-              user 
-                ? <Navigate to="/dashboard" replace /> 
-                : <LandingPage onLogin={handleGoogleLogin} />
-            } 
-          />
+            {/* Landing */}
+            <Route 
+              path="/" 
+              element={
+                user 
+                  ? <Navigate to="/dashboard" replace /> 
+                  : <LandingPage onLogin={handleGoogleLogin} />
+              } 
+            />
 
-          {/* Protected */}
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="wallet" element={<WalletTracker />} />
-            <Route path="markets" element={<MarketOverview />} />
-            <Route path="asset/:id" element={<AssetPage />} />
-            <Route path="copilot" element={<PremiumRoute><ChatInterface /></PremiumRoute>} />
-            <Route path="alerts" element={<SmartAlerts />} />
-            <Route path="pricing" element={<PricingPage />} />
-            <Route path="education" element={<BlogPage />} />
-            <Route path="success" element={<CheckoutSuccessPage />} />
-            <Route path="cancel" element={<CheckoutCancelPage />} />
-          </Route>
+            {/* Protected */}
+            <Route 
+              path="/" 
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="wallet" element={<WalletTracker />} />
+              <Route path="markets" element={<MarketOverview />} />
+              <Route path="asset/:id" element={<AssetPage />} />
+              <Route path="copilot" element={<ChatInterface />} />
+              <Route path="alerts" element={<SmartAlerts />} />
+              <Route path="pricing" element={<PricingPage />} />
+              <Route path="education" element={<BlogPage />} />
+              <Route path="success" element={<CheckoutSuccessPage />} />
+              <Route path="cancel" element={<CheckoutCancelPage />} />
+            </Route>
 
-        </Routes>
+            <Route path="*" element={<Navigate to={user ? '/dashboard' : '/'} replace />} />
+          </Routes>
+        </Suspense>
       </div>
     </BrowserRouter>
   );

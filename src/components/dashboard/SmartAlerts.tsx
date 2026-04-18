@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Bell, Plus, Trash2, TrendingUp, TrendingDown, AlertCircle, Zap } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { useStore, Alert } from '../../store/useStore';
+import { useStore } from '../../store/useStore';
 import { db } from '../../firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { Paywall } from '../ui/Paywall';
@@ -88,7 +88,7 @@ export const SmartAlerts: React.FC = () => {
             <label className="text-[10px] text-white/40 uppercase font-bold">Condition</label>
             <select 
               value={condition}
-              onChange={(e) => setCondition(e.target.value as any)}
+              onChange={(e) => setCondition(e.target.value as 'above' | 'below')}
               className="w-full bg-[#0F0F0F] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-orange-500/50 outline-none appearance-none"
             >
               <option value="above">Price Goes Above</option>
