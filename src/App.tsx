@@ -54,6 +54,26 @@ export default function App() {
   const handleGoogleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        plan: "free",
+        portfolio: [
+          {
+            symbol: "BTC",
+            amount: 0,
+            value: 0
+          }
+        ],
+        subscription: {
+          status: "inactive",
+          type: "monthly",
+          expiresAt: null
+        },
+        createdAt: new Date()
+      }, { merge: true });
+
       console.log("User connecté :", result.user);
     } catch (error) {
       console.error("Erreur login :", error);
@@ -165,9 +185,8 @@ export default function App() {
               } 
             />
 
-            {/* Protected */}
-            <Route 
-              path="/" 
+            {/* Protected layout: no path so /dashboard, /wallet, etc. match nested routes */}
+            <Route
               element={
                 <ProtectedRoute>
                   <DashboardLayout />

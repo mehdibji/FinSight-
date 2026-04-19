@@ -52,7 +52,27 @@ export const DashboardLayout = () => {
     }
   };
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#010108] text-[#F1F5F9] font-sans relative">
+        <AntiGravityBackground />
+        <div className="relative z-10 min-h-screen flex items-center justify-center px-6">
+          <div className="glass-panel max-w-md w-full rounded-3xl p-6 text-center">
+            <h2 className="text-xl font-bold text-white">Session required</h2>
+            <p className="mt-2 text-sm text-white/60">
+              Please sign in to access your dashboard.
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="mt-5 w-full rounded-xl bg-gradient-to-r from-orange-600 to-orange-400 px-4 py-2 text-sm font-bold text-white"
+            >
+              Go to login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-[#010108] text-[#F1F5F9] overflow-hidden font-sans relative">

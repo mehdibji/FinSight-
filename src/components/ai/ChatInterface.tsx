@@ -2,24 +2,30 @@ import React, { Suspense, lazy, useMemo, useState, useEffect, useRef } from 'rea
 import { Send, GraduationCap, Sparkles, User, Bot, Loader2, Info, Copy, RefreshCw, ThumbsUp, ThumbsDown, LineChart, Globe, Target, Activity, Clock, FileText } from 'lucide-react';
 import { getGeminiResponse, ChatMessage } from '../../services/gemini';
 import * as TA from '../../services/tradingAssistant';
-import { auth } from '../../firebase';
+import { auth, db } from '../../firebase';
+import { doc, getDoc } from "firebase/firestore";
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../../store/useStore';
+import { useLocation, useNavigate } from 'react-router-dom';
 const MarkdownRenderer = lazy(() =>
   import("./MarkdownRenderer").then((m) => ({ default: m.MarkdownRenderer })),
 );
 
 export const ChatInterface: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialPromptConsumed = useRef(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isEducationalMode, setIsEducationalMode] = useState(false);
+  const [userPlan, setUserPlan] = useState('free');
   const scrollRef = useRef<HTMLDivElement>(null);
   const { assets, alerts } = useStore();
 
   const suggestedPrompts = [
-    "Analyze my portfolio risk",
+    "Analyze My Portfolio",
     "Summarize today's market sentiment",
     "What should I watch this week?",
     "Explain BTC volatility simply",
@@ -27,7 +33,7 @@ export const ChatInterface: React.FC = () => {
   ];
 
   const quickActions = [
-    { id: 'analyze_portfolio', label: 'Analyze portfolio' },
+    { id: 'analyze_portfolio', label: 'Analyze My Portfolio' },
     { id: 'market_sentiment', label: 'Market sentiment' },
     { id: 'trading_ideas', label: 'Trading ideas' },
   ];
@@ -46,6 +52,26 @@ export const ChatInterface: React.FC = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+
+      if (snap.exists()) {
+        const data = snap.data();
+        console.log(data);
+        setUserPlan((data.plan as string) || 'free');
+      }
+    };
+
+    fetchUserData().catch((error) => {
+      console.error("Failed to fetch user data", error);
+    });
+  }, []);
 
   const proactiveSuggestions = useMemo(() => {
     const hasHighRiskAlert = alerts.some((a) => a.active);
@@ -121,6 +147,25 @@ export const ChatInterface: React.FC = () => {
     }
   };
 
+  const handleSendRef = useRef(handleSend);
+  handleSendRef.current = handleSend;
+
+  useEffect(() => {
+    const initialPrompt = (location.state as { initialPrompt?: string } | null)?.initialPrompt;
+    if (!initialPrompt || initialPromptConsumed.current) return;
+    initialPromptConsumed.current = true;
+    navigate(location.pathname, { replace: true, state: null });
+    void handleSendRef.current(initialPrompt);
+  }, [location.pathname, location.state, navigate]);
+
+  const handlePremiumAction = (prompt: string) => {
+    if (userPlan !== "pro") {
+      alert("Upgrade to premium");
+      return;
+    }
+    handleSend(prompt);
+  };
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
   };
@@ -171,7 +216,7 @@ export const ChatInterface: React.FC = () => {
         {advancedTools.map(tool => (
           <button
             key={tool.id}
-            onClick={() => handleSend(tool.prompt)}
+            onClick={() => handlePremiumAction(tool.prompt)}
             className="flex items-center gap-1.5 whitespace-nowrap px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 hover:border-indigo-500/30 transition-all font-medium text-[11px] text-white/70 hover:text-indigo-300"
           >
             <tool.icon className="w-3.5 h-3.5" />

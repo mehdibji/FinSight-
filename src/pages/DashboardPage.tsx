@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BarChart3, Bell, GripHorizontal, Lock, Sparkles, TrendingUp, Unlock, Wallet2, Zap } from "lucide-react";
+import { ArrowRight, BarChart3, Bell, GripHorizontal, Lock, Sparkles, TrendingUp, Unlock, Wallet2, Zap, Brain } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { ChatInterface } from "../components/ai/ChatInterface";
 import { GlassCard } from "../components/ui/GlassCard";
@@ -47,22 +47,45 @@ const defaultLayouts = {
   ]
 };
 
+type PortfolioAsset = {
+  symbol: string;
+  value: number;
+};
+
 export const DashboardPage = () => {
   const { user, getTotalPortfolioValue } = useStore();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [layouts, setLayouts] = useState<any>(defaultLayouts);
   const [loadingLayout, setLoadingLayout] = useState(true);
+  const [userPortfolio, setUserPortfolio] = useState<PortfolioAsset[]>([]);
 
   // Load layout
   useEffect(() => {
     const loadLayout = async () => {
-      if (!auth.currentUser) return;
+      if (!user?.uid) {
+        setLoadingLayout(false);
+        return;
+      }
       try {
-        const docRef = doc(db, 'dashboards', auth.currentUser.uid);
+        const docRef = doc(db, 'dashboards', user.uid);
         const snap = await getDoc(docRef);
         if (snap.exists() && snap.data().layouts) {
           setLayouts(snap.data().layouts);
+        }
+
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          console.log(data);
+          const portfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
+          setUserPortfolio(
+            portfolio.map((asset: any) => ({
+              symbol: asset?.symbol ?? "N/A",
+              value: Number(asset?.value ?? 0),
+            })),
+          );
         }
       } catch (err) {
         console.error("Layout load error", err);
@@ -71,7 +94,7 @@ export const DashboardPage = () => {
       }
     };
     loadLayout();
-  }, [user]);
+  }, [user?.uid]);
 
   const onLayoutChange = async (currentLayout: Layout[], allLayouts: any) => {
     setLayouts(allLayouts);
@@ -81,17 +104,6 @@ export const DashboardPage = () => {
       await setDoc(docRef, { layouts: allLayouts }, { merge: true });
     } catch (err) {}
   };
-
-  if (!user || loadingLayout) {
-    return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {Array.from({ length: 6 }).map((_, idx) => (
-          <div key={idx} className="h-40 animate-pulse rounded-3xl border border-white/10 bg-white/5" />
-        ))}
-        <div className="col-span-full text-center text-sm text-white/50">Loading dashboard modules...</div>
-      </div>
-    );
-  }
 
   const totalValue = getTotalPortfolioValue();
   const performance = useMemo(() => {
@@ -111,8 +123,19 @@ export const DashboardPage = () => {
     [],
   );
 
+  if (!user || loadingLayout) {
+    return (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <div key={idx} className="h-40 animate-pulse rounded-3xl border border-white/10 bg-white/5" />
+        ))}
+        <div className="col-span-full text-center text-sm text-white/50">Loading dashboard modules...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-full flex flex-col gap-4 relative pb-20">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 pb-20">
       
       {/* Header & Controls */}
       <div className="flex flex-col gap-4 z-10 backdrop-blur-md bg-black/20 p-4 rounded-3xl border border-white/5 md:flex-row md:items-center md:justify-between">
@@ -146,6 +169,20 @@ export const DashboardPage = () => {
             className="rounded-xl bg-gradient-to-r from-orange-600 to-orange-400 px-4 py-2 text-sm font-bold text-white shadow-[0_0_16px_rgba(249,115,22,0.35)] transition hover:brightness-110"
           >
             Start Trading
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/copilot", {
+                state: { initialPrompt: "Analyze My Portfolio" },
+              })
+            }
+            className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-500/20"
+          >
+            <span className="flex items-center gap-2">
+              <Brain className="h-4 w-4 text-indigo-400" />
+              Analyze My Portfolio
+            </span>
           </button>
           <button 
             onClick={() => setIsEditing(!isEditing)}
@@ -183,7 +220,7 @@ export const DashboardPage = () => {
         </div>
       </div>
 
-      <div className="flex-1 -mx-2">
+      <div className="-mx-2 flex min-h-[560px] flex-1 flex-col">
         <ResponsiveGridLayout
           className={cn("layout", isEditing && "bg-white/[0.01] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSJub25lIi8+PGRpcGxhY2VtZW50IG1hcD1pZCAvPjxjaXJjbGUgY3g9IjIiIGN5PSIyIiByPSIxIiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+PC9zdmc+')] rounded-3xl border border-white/5")}
           layouts={layouts}
@@ -211,6 +248,14 @@ export const DashboardPage = () => {
               <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-400/10 w-fit px-2.5 py-1 rounded-full z-10">
                 <TrendingUp className="w-3 h-3" />
                 <span>+2.4% Today</span>
+              </div>
+              <div className="mt-4 z-10 space-y-1.5 text-xs text-white/80">
+                {userPortfolio.map((asset, index) => (
+                  <div key={`${asset.symbol}-${index}`} className="flex items-center justify-between rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5">
+                    <p>{asset.symbol}</p>
+                    <p>{asset.value}€</p>
+                  </div>
+                ))}
               </div>
               <div className="absolute -bottom-8 -right-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
                  <Zap className="w-48 h-48" />
