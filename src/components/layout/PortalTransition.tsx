@@ -10,25 +10,25 @@ export const PortalTransition = ({ children }: { children: ReactNode }) => {
       key={location.pathname}
       initial={{ 
         opacity: 0, 
-        scale: 0.8, 
-        filter: "blur(20px) hue-rotate(90deg)"
+        scale: 0.95,
+        y: 10
       }}
       animate={{ 
         opacity: 1, 
-        scale: 1, 
-        filter: "blur(0px) hue-rotate(0deg)"
+        scale: 1,
+        y: 0
       }}
       exit={{ 
         opacity: 0, 
-        scale: 1.2, 
-        filter: "blur(20px) hue-rotate(-90deg)"
+        scale: 1.02,
+        y: -10
       }}
       transition={{ 
-        duration: 0.6, 
+        duration: 0.35, 
         ease: [0.76, 0, 0.24, 1] 
       }}
       className="w-full h-full"
-      style={{ willChange: 'transform, opacity, filter' }}
+      style={{ willChange: 'transform, opacity' }}
     >
       {children}
     </motion.div>

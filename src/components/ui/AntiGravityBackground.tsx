@@ -30,23 +30,21 @@ export const AntiGravityBackground = () => {
           value: 'transparent',
         },
       },
-      fpsLimit: 60,
+      fpsLimit: 30,
       interactivity: {
         events: {
-          onClick: { enable: true, mode: 'push' },
           onHover: { enable: true, mode: 'repulse' },
           resize: { enable: true, delay: 0.5 }
         },
         modes: {
-          push: { quantity: 4 },
-          repulse: { distance: 150, duration: 0.4 },
+          repulse: { distance: 100, duration: 0.4 },
         },
       },
       particles: {
         color: { value: color },
         links: {
           color: color,
-          distance: 150,
+          distance: 120,
           enable: true,
           opacity: 0.3,
           width: 1,
@@ -61,7 +59,7 @@ export const AntiGravityBackground = () => {
         },
         number: {
           density: { enable: true, width: 800, height: 800 },
-          value: 60,
+          value: 30,
         },
         opacity: { value: 0.5 },
         shape: { type: 'circle' },

@@ -57,4 +57,59 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  
+  /* Futuristic Additions */
+  .neon-border {
+    position: relative;
+  }
+  .neon-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.5), rgba(244, 63, 94, 0.5), rgba(99, 102, 241, 0.5));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    animation: border-flow 4s linear infinite;
+  }
+  
+  .glow-pulse {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  .cyber-grid {
+    background-size: 40px 40px;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    mask-image: radial-gradient(circle at center, black, transparent 80%);
+  }
+  
+  .scanline {
+    width: 100%;
+    height: 100px;
+    z-index: 50;
+    pointer-events: none;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(249, 115, 22, 0.1) 50%, rgba(0, 0, 0, 0) 100%);
+    opacity: 0.1;
+    animation: scan 6s linear infinite;
+  }
+
+  @keyframes scan {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+  
+  @keyframes border-flow {
+    0% { background-position: 0% 50%; opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { background-position: 100% 50%; opacity: 0.3; }
+  }
+
+  @keyframes glow {
+    0% { filter: drop-shadow(0 0 5px rgba(249, 115, 22, 0.4)); }
+    100% { filter: drop-shadow(0 0 15px rgba(249, 115, 22, 0.8)); }
+  }
 }

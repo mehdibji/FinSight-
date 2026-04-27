@@ -48,7 +48,7 @@ const TABS = [
   { id: "fx", label: "FX", icon: BookOpen },
 ] as const;
 
-function Sparkline({ isUp }: { isUp: boolean }) {
+const Sparkline = React.memo(function Sparkline({ isUp }: { isUp: boolean }) {
   // Generate random plausible sparkline data for aesthetic purposes since we don't fetch historical for all
   const data = useMemo(() => Array.from({ length: 20 }, (_, i) => ({ 
     v: 100 + (isUp ? i : 20 - i) + Math.random() * 5 
@@ -63,7 +63,7 @@ function Sparkline({ isUp }: { isUp: boolean }) {
       </ResponsiveContainer>
     </div>
   );
-}
+});
 
 export const MarketOverview = () => {
   const [data, setData] = useState<MarketOverviewResponse | null>(null);

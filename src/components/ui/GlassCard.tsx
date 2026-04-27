@@ -14,7 +14,7 @@ export const GlassCard = ({ children, className, hoverEffect = false }: GlassCar
       whileHover={hoverEffect ? { y: -5, scale: 1.01 } : undefined}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className={cn(
-        "glass-panel rounded-3xl p-6 relative overflow-hidden group",
+        "glass-panel rounded-3xl p-6 relative overflow-hidden group neon-border",
         hoverEffect && "hover:border-white/20 hover:shadow-[0_8px_40px_rgba(255,255,255,0.05)] transition-all duration-500",
         className
       )}

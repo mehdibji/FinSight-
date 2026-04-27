@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, BarChart3, Bell, GripHorizontal, Lock, Sparkles, TrendingUp, Unlock, Wallet2, Zap, Brain } from "lucide-react";
+import { ArrowRight, BarChart3, Bell, Clock, GripHorizontal, Lock, Sparkles, TrendingUp, Unlock, Wallet2, Zap, Brain } from "lucide-react";
+import CountUp from "react-countup";
 import { useStore } from "../store/useStore";
 import { ChatInterface } from "../components/ai/ChatInterface";
 import { GlassCard } from "../components/ui/GlassCard";
@@ -114,6 +115,21 @@ export const DashboardPage = () => {
     };
   }, [totalValue]);
 
+  // Time-aware greeting
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 18) return "Good afternoon";
+    return "Good evening";
+  }, []);
+
+  // Live clock
+  const [clock, setClock] = useState(new Date().toLocaleTimeString());
+  useEffect(() => {
+    const id = setInterval(() => setClock(new Date().toLocaleTimeString()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const movers = useMemo(
     () => [
       { s: "BTCUSDT", n: "Bitcoin", p: "$94,210", c: "+1.2%", iconClass: "text-orange-400 bg-orange-500/20" },
@@ -151,9 +167,12 @@ export const DashboardPage = () => {
           </motion.div>
           <div>
             <h1 className="text-xl md:text-2xl font-extrabold tracking-tight">
-              Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-rose-400">{user.displayName?.split(' ')[0]}</span>
+              {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-rose-400">{user.displayName?.split(' ')[0]}</span>
             </h1>
-            <p className="text-xs text-white/40">Execution-ready cockpit with portfolio and market context.</p>
+            <div className="flex items-center gap-3 text-xs text-white/40">
+              <span>Execution-ready cockpit</span>
+              <span className="flex items-center gap-1 text-orange-400/60"><Clock className="w-3 h-3" />{clock}</span>
+            </div>
           </div>
         </div>
 
@@ -200,22 +219,25 @@ export const DashboardPage = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-          <div className="text-xs uppercase tracking-wider text-white/40">Today P&L</div>
-          <div className={cn("mt-2 text-xl font-bold", performance.day >= 0 ? "text-emerald-400" : "text-rose-400")}>
-            {performance.day >= 0 ? "+" : ""}{performance.day}%
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 neon-border relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
+          <div className="text-xs uppercase tracking-wider text-white/40 relative z-10">Today P&L</div>
+          <div className={cn("mt-2 text-xl font-bold relative z-10", performance.day >= 0 ? "text-emerald-400" : "text-rose-400")}>
+            {performance.day >= 0 ? "+" : ""}<CountUp end={performance.day} decimals={2} duration={1.5} preserveValue />%
           </div>
         </div>
-        <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4">
-          <div className="text-xs uppercase tracking-wider text-white/40">7D Performance</div>
-          <div className={cn("mt-2 text-xl font-bold", performance.week >= 0 ? "text-emerald-400" : "text-rose-400")}>
-            {performance.week >= 0 ? "+" : ""}{performance.week}%
+        <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-4 neon-border relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
+          <div className="text-xs uppercase tracking-wider text-white/40 relative z-10">7D Performance</div>
+          <div className={cn("mt-2 text-xl font-bold relative z-10", performance.week >= 0 ? "text-emerald-400" : "text-rose-400")}>
+            {performance.week >= 0 ? "+" : ""}<CountUp end={performance.week} decimals={2} duration={1.5} preserveValue />%
           </div>
         </div>
-        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
-          <div className="text-xs uppercase tracking-wider text-white/40">Portfolio Value</div>
-          <div className="mt-2 text-xl font-bold text-white">
-            ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4 neon-border relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
+          <div className="text-xs uppercase tracking-wider text-white/40 relative z-10">Portfolio Value</div>
+          <div className="mt-2 text-xl font-bold text-white relative z-10">
+            $<CountUp end={totalValue} decimals={2} separator="," duration={2} preserveValue />
           </div>
         </div>
       </div>

@@ -81,13 +81,18 @@ export const DashboardLayout = () => {
       <AntiGravityBackground />
       <CommandPalette />
 
-      {/* Floating Top Bar */}
+      {/* Floating Top Bar with Scanline */}
+      <div className="absolute inset-0 pointer-events-none scanline opacity-20"></div>
       <header className="absolute top-4 left-4 right-4 z-50 flex justify-between items-start">
         <div className="glass-panel px-4 py-2 rounded-2xl flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-tr from-orange-600 to-orange-400 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
             <Zap className="w-5 h-5 text-white" />
           </div>
           <span className="font-bold text-lg tracking-tight text-white hidden sm:block">FinSight</span>
+          <div className="ml-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Live</span>
+          </div>
         </div>
 
         <div className="flex gap-3">
@@ -159,15 +164,18 @@ export const DashboardLayout = () => {
                 {isActive && (
                   <motion.div 
                     layoutId="active-nav"
-                    className="absolute inset-0 bg-white/10 rounded-2xl"
+                    className="absolute inset-0 bg-white/10 rounded-2xl neon-border"
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}
-                <item.icon className={cn("w-5 h-5 relative z-10", isActive && "text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]")} />
-                <span className={cn("text-xs font-semibold relative z-10 hidden sm:block", isActive && "text-white")}>{item.label}</span>
+                <item.icon className={cn("w-5 h-5 relative z-10", isActive && "text-orange-400 glow-pulse drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]")} />
+                <span className={cn("text-xs font-semibold relative z-10 hidden sm:block", isActive && "text-white glow-pulse")}>{item.label}</span>
               </NavLink>
             )
           })}
+        </div>
+        <div className="mt-2 text-center">
+          <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Press <kbd className="bg-white/10 px-1.5 py-0.5 rounded ml-1 text-orange-400">⌘K</kbd> to open copilot</span>
         </div>
       </nav>
 
