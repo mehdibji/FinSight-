@@ -2,12 +2,14 @@ import React, { Suspense, lazy, useMemo, useState, useEffect, useRef } from 'rea
 import { Send, GraduationCap, Sparkles, User, Bot, Loader2, Info, Copy, RefreshCw, ThumbsUp, ThumbsDown, LineChart, Globe, Target, Activity, Clock, FileText } from 'lucide-react';
 import { getGeminiResponse, ChatMessage } from '../../services/gemini';
 import * as TA from '../../services/tradingAssistant';
-import { auth, db } from '../../firebase';
-import { doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useStore } from '../../store/useStore';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { fromTheme } from 'tailwind-merge';
+import { auth, db } from "../../firebase";
 const MarkdownRenderer = lazy(() =>
   import("./MarkdownRenderer").then((m) => ({ default: m.MarkdownRenderer })),
 );
@@ -54,23 +56,42 @@ export const ChatInterface: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
-
-      if (snap.exists()) {
-        const data = snap.data();
-        console.log(data);
-        setUserPlan((data.plan as string) || 'free');
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setUserPlan("free");
+        return;
       }
-    };
-
-    fetchUserData().catch((error) => {
-      console.error("Failed to fetch user data", error);
+  
+      try {
+        const userRef = doc(db, "users", user.uid);
+        const snap = await getDoc(userRef);
+  
+        if (snap.exists()) {
+          const data = snap.data();
+          setUserPlan((data.plan as string) || "free");
+        } else {
+          await setDoc(userRef, {
+            uid: user.uid,
+            email: user.email,
+            plan: "free",
+            portfolio: [],
+            subscription: {
+              status: "inactive",
+              type: null,
+              expiresAt: null,
+            },
+            createdAt: new Date(),
+          });
+  
+          setUserPlan("free");
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data", error);
+        setUserPlan("free");
+      }
     });
+  
+    return () => unsubscribe();
   }, []);
 
   const proactiveSuggestions = useMemo(() => {
