@@ -14,6 +14,7 @@
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
+    "@tanstack/react-query": "^5.100.5",
     "@tsparticles/engine": "^3.9.1",
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.9.1",
@@ -41,7 +42,9 @@
     "stripe": "^21.0.1",
     "tailwind-merge": "^3.5.0",
     "tsparticles": "^3.9.1",
+    "viem": "^2.48.4",
     "vite": "^6.2.0",
+    "wagmi": "^3.6.5",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
